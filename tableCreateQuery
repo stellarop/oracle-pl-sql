@@ -1,0 +1,197 @@
+-- 고객 정보
+CREATE TABLE CST_INFO 
+   (CST_ID VARCHAR2(20) not null, 
+	NAME VARCHAR2(20) not null, 
+	BIRTH NUMBER(8) not null, 
+	MOBILE VARCHAR2(20) not null, 
+	POINT NUMBER(10) default 0 not null, 
+	REG_DAY DATE default sysdate, 
+	 CONSTRAINT PK_CST_INFO PRIMARY KEY (CST_ID)
+  );
+   COMMENT ON COLUMN CST_INFO.CST_ID IS '고객ID';
+   COMMENT ON COLUMN CST_INFO.NAME IS '고객명';
+   COMMENT ON COLUMN CST_INFO.BIRTH IS '출생년도';
+   COMMENT ON COLUMN CST_INFO.MOBILE IS '핸드폰번호';
+   COMMENT ON COLUMN CST_INFO.POINT IS '포인트적립';
+   COMMENT ON COLUMN CST_INFO.REG_DAY IS '등록일자';
+   COMMENT ON TABLE CST_INFO  IS '고객정보 테이블';
+
+-- 메뉴
+CREATE TABLE MENU 
+  (MNU_ID VARCHAR2(20) not null, 
+	MNU_TYPE VARCHAR2(20) not null, 
+	MNU_NM VARCHAR2(20) not null, 
+	MNU_PRICE NUMBER(10)  default 0 not null, 
+	USE_YN CHAR(1) DEFAULT 'Y' not null, 
+	REG_DAY DATE DEFAULT sysdate not null, 
+	 CONSTRAINT PK_MENU PRIMARY KEY (MNU_ID)
+    ) ;
+
+   COMMENT ON COLUMN MENU.MNU_ID IS '메뉴ID';
+   COMMENT ON COLUMN MENU.MNU_TYPE IS ' 메뉴 타입:커피/맥주';
+   COMMENT ON COLUMN MENU.MNU_NM IS '메뉴 명칭';
+   COMMENT ON COLUMN MENU.MNU_PRICE IS '메뉴 가격';
+   COMMENT ON COLUMN MENU.USE_YN IS '사용유무';
+   COMMENT ON COLUMN MENU.REG_DAY IS '등록일자';
+   COMMENT ON TABLE MENU  IS '메뉴 테이블';
+
+
+-- 메뉴 옵션 정보
+CREATE TABLE MENU_OPT 
+   (MNU_TYPE VARCHAR2(20) NOT NULL, 
+	MNU_OPT VARCHAR2(20) NOT NULL, 
+	OPT_PRICE NUMBER(10) NOT NULL, 
+	REG_DAY DATE DEFAULT sysdate, 
+	 CONSTRAINT PK_MENU_OPT PRIMARY KEY (MNU_TYPE, MNU_OPT)
+    );
+
+   COMMENT ON COLUMN MENU_OPT.MNU_TYPE IS '메뉴 타입:커피/맥주';
+   COMMENT ON COLUMN MENU_OPT.MNU_OPT IS '옵션정보:Size(CC) , Ice';
+   COMMENT ON COLUMN MENU_OPT.OPT_PRICE IS '옵션가격';
+   COMMENT ON COLUMN MENU_OPT.REG_DAY IS '등록일자';
+   COMMENT ON TABLE MENU_OPT  IS '메뉴 옵션 테이블 : 기본 메뉴금액에 옵션가를 추가';
+
+-- Cart (장바구니)
+CREATE TABLE TMP_ORD 
+   (CST_ID VARCHAR2(20) NOT NULL, 
+	MNU_ID VARCHAR2(20) NOT NULL, 
+	MNU_SIZE VARCHAR2(20) default 'N' NOT NULL, 
+	MNU_ICE VARCHAR2(20) default 'N'  NOT NULL, 
+	QTY NUMBER(10) NOT NULL 
+        CONSTRAINT qty_nozero CHECK(qty>0), 
+  POINT_USE NUMBER(10) default 0 not null, 
+	REG_DAY DATE DEFAULT sysdate, 
+	 CONSTRAINT PK_TMP_ORD PRIMARY KEY (CST_ID, MNU_ID)  
+   ) ;
+
+   COMMENT ON COLUMN TMP_ORD.CST_ID IS '고객ID : cst_info.cst_id';
+   COMMENT ON COLUMN TMP_ORD.MNU_ID IS '메뉴ID : menu.mnu_id';
+   COMMENT ON COLUMN TMP_ORD.MNU_SIZE IS '메뉴 size :  menu_opt.mnu_opt';
+   COMMENT ON COLUMN TMP_ORD.MNU_ICE IS '메뉴 Ice : menu_opt.mnu_opt';
+   COMMENT ON COLUMN TMP_ORD.QTY IS '주문수량 , 0 보다 커야 함';
+   COMMENT ON COLUMN TMP_ORD.REG_DAY IS '등록일자';
+   COMMENT ON TABLE TMP_ORD  IS 'Cart (장바구니) 테이블';
+
+-- 시퀀스 
+CREATE SEQUENCE sq_real_ord
+       INCREMENT BY 1
+       START WITH 1000000
+       MINVALUE 1
+       MAXVALUE 9999999
+       NOCYCLE
+       CACHE 20
+       NOORDER;
+
+-- 주문
+CREATE TABLE REAL_ORD 
+   (	ORD_NO NUMBER(10) DEFAULT SQ_REAL_ORD.NEXTVAL NOT NULL, 
+	ORD_SEQ NUMBER(5) NOT NULL, 
+	CST_ID VARCHAR2(20), 
+	MNU_ID VARCHAR2(20), 
+	MNU_SIZE VARCHAR2(20) DEFAULT 'N' NOT NULL , 
+	MNU_ICE VARCHAR2(20) DEFAULT 'N' NOT NULL , 
+	QTY NUMBER(10) NOT NULL ENABLE, 
+	PRICE NUMBER(10), 
+	TOTAL_PRICE NUMBER(10), 
+    POINT_USE NUMBER(10,0) DEFAULT 0 NOT NULL , 
+    POINT_ADD NUMBER(10,0) DEFAULT 0 NOT NULL ,
+	REG_DAY DATE DEFAULT sysdate, 
+	 CONSTRAINT PK_REAL_ORD PRIMARY KEY (ORD_NO, ORD_SEQ)
+   ) ;
+
+   COMMENT ON COLUMN REAL_ORD.ORD_SEQ IS '주문순차';
+   COMMENT ON COLUMN REAL_ORD.CST_ID IS '고객ID';
+   COMMENT ON COLUMN REAL_ORD.MNU_ID IS '메뉴ID';
+   COMMENT ON COLUMN REAL_ORD.MNU_SIZE IS '메뉴 size :  menu_opt.mnu_opt';
+   COMMENT ON COLUMN REAL_ORD.MNU_ICE IS '메뉴 Ice : menu_opt.mnu_opt';
+   COMMENT ON COLUMN REAL_ORD.QTY IS '주문수량 , 0 보다 커야 함';
+   COMMENT ON COLUMN REAL_ORD.PRICE IS '단가';
+   COMMENT ON COLUMN REAL_ORD.TOTAL_PRICE IS '주문금액 : 수량 * 단가';
+   COMMENT ON COLUMN REAL_ORD.POINT_USE IS '포인트 : 사용포인트';
+   COMMENT ON COLUMN REAL_ORD.POINT_ADD IS '포인트 : 추가포인트';
+   COMMENT ON COLUMN REAL_ORD.REG_DAY IS '등록일자';
+   COMMENT ON TABLE REAL_ORD  IS '주문 테이블';
+  
+  COMMIT;
+  
+-- FK 설정
+alter table tmp_ord 
+add CONSTRAINT fr_tmp_ord_01 FOREIGN key(cst_id) REFERENCES cst_info(cst_id);
+
+alter table tmp_ord 
+add CONSTRAINT fr_tmp_ord_02 FOREIGN key(mnu_id) REFERENCES menu(mnu_id);
+
+alter table real_ord 
+add CONSTRAINT fr_real_ord_01 FOREIGN key(cst_id) REFERENCES cst_info(cst_id);
+
+alter table real_ord 
+add CONSTRAINT fr_real_ord_02 FOREIGN key(mnu_id) REFERENCES menu(mnu_id);
+
+-- FK 설정의 대한 설명
+-- 프로젝트 초반이나 대용량 작업을 할땐 외래키을 걸지 않고 진행 하는 경우가 많다
+-- 테이블에 있는 데이터를 마음대로 삭제하지 못하기 때문(무결정 제약 조건 위반)
+alter table tmp_ord drop CONSTRAINT   fr_tmp_ord_01;
+alter table tmp_ord drop CONSTRAINT   fr_tmp_ord_02;
+alter table real_ord drop CONSTRAINT   fr_real_ord_01;
+alter table real_ord drop CONSTRAINT   fr_real_ord_02;
+
+-- 고객정보 - cst_info
+Insert into CST_INFO (CST_ID,NAME,BIRTH,MOBILE,POINT,REG_DAY) 
+values ('C001','홍길동1',20080304,'010-0000-1111',100,sysdate);
+
+Insert into CST_INFO (CST_ID,NAME,BIRTH,MOBILE,POINT,REG_DAY)
+values ('C002','홍길동2',20000304,'010-0000-1112',0,sysdate);
+
+Insert into CST_INFO (CST_ID,NAME,BIRTH,MOBILE,POINT,REG_DAY)
+values ('C003','홍길동3',19950304,'010-0000-1113',5000,sysdate);
+
+Insert into CST_INFO (CST_ID,NAME,BIRTH,MOBILE,POINT,REG_DAY)
+values ('C004','홍길동4',19700304,'010-0000-1114',0,sysdate);
+
+Insert into CST_INFO (CST_ID,NAME,BIRTH,MOBILE,POINT,REG_DAY)
+values ('C005','홍길동5',19600304,'010-0000-1115',0,sysdate);
+
+-- 메뉴 - menu
+insert into menu(mnu_id, mnu_type, mnu_nm, mnu_price, use_yn, reg_day)
+values ('M001','커피','아메리카노',3000,'Y',sysdate);
+
+insert into menu(mnu_id, mnu_type, mnu_nm, mnu_price, use_yn, reg_day)
+values ('M002','커피','카페라떼',4000,'Y',sysdate);
+
+insert into menu(mnu_id, mnu_type, mnu_nm, mnu_price, use_yn, reg_day)
+values ('M003','커피','카푸치노',4000,'Y',sysdate);
+
+insert into menu(mnu_id, mnu_type, mnu_nm, mnu_price, use_yn, reg_day)
+values ('M004','맥주','생맥주',5000,'Y',sysdate);
+
+insert into menu(mnu_id, mnu_type, mnu_nm, mnu_price, use_yn, reg_day)
+values ('M005','맥주','흑맥주',6000,'Y',sysdate);
+
+--메뉴 옵션 - mnu_opt 
+insert into menu_opt(mnu_type, mnu_opt,  opt_price, reg_day)
+values ('커피','M',500,sysdate);
+
+insert into menu_opt(mnu_type, mnu_opt,  opt_price, reg_day)
+values ('커피','L',1000,sysdate);
+
+insert into menu_opt(mnu_type, mnu_opt,  opt_price, reg_day)
+values ('커피','ICE',500,sysdate);
+
+insert into menu_opt(mnu_type, mnu_opt,  opt_price, reg_day)
+values ('맥주','1000', 5000,sysdate);
+
+insert into menu_opt(mnu_type, mnu_opt,  opt_price, reg_day)
+values ('맥주','3000', 10000,sysdate);
+
+insert into menu_opt(mnu_type, mnu_opt,  opt_price, reg_day)
+values ('맥주','5000', 20000,sysdate);
+
+-- Cart(장바구니)
+insert into tmp_ord (cst_id, mnu_id, mnu_size, mnu_ice, qty, point_use, reg_day)
+values ('C001','M001','M','N',2,0,sysdate);
+
+insert into tmp_ord (cst_id, mnu_id, mnu_size, mnu_ice, qty, point_use, reg_day)
+values ('C002','M002','L','ICE',3,0,sysdate);
+
+insert into tmp_ord (cst_id, mnu_id, mnu_size, mnu_ice, qty, point_use, reg_day)
+values ('C003','M004','3000','N',1,3000,sysdate);
