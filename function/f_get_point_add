@@ -1,0 +1,13 @@
+CREATE OR REPLACE FUNCTION LYJ.F_GET_POINT_ADD(
+	p_total_price IN NUMBER
+) RETURN NUMBER IS
+
+v_point real_ord.point_add%type;
+BEGIN
+	v_point := round(p_total_price * 0.1);
+
+RETURN v_point;
+
+EXCEPTION WHEN OTHERS THEN
+	RETURN 0;
+END F_GET_POINT_ADD;
