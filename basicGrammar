@@ -1,0 +1,170 @@
+-- PL/SQL 기본 문법
+
+-- PL/SQL 변수 선언
+DECLARE 
+     -- 변수선언
+     -- v_name varchar2(100);
+	 -- sample.name에 있는 데이터 타입에 의존해서 선언
+	 v_name sample.name%type;
+
+	 -- sample 테이블에 존재하는 어떤 타입도 r_sample 변수에 대입 가능
+	 r_sample sample%rowtype;
+	
+BEGIN   
+    -- v_name := '홍길동';
+    select
+    	-- 변수의 값은 테이블에 있는 타입이랑 일치해야한다
+    	-- name into v_name
+    	name INTO r_sample.name
+    from sample
+    where name ='홍길동';
+     -- 실행구문   
+    dbms_output.put_line('Hello ' || r_sample.name); 
+   
+END;
+
+-- PL/SQL IF문
+DECLARE 
+    age number(10);
+BEGIN   
+    age := 20;
+    
+    IF age < 13 THEN
+    	dbms_output.put_line('초등학생 : ' || age); 
+   	ELSIF age < 16 THEN
+    	dbms_output.put_line('중학생 : ' || age); 
+    ELSE
+    	dbms_output.put_line('고등학생 이상 : ' || age); 
+    END IF;
+END;
+
+-- PL/SQL case문
+DECLARE 
+    age number(10);
+BEGIN   
+    age := 20;
+    
+  CASE age
+  	WHEN 13 THEN 
+    	dbms_output.put_line('초등학생 : ' || age); 
+   	WHEN 16 THEN
+    	dbms_output.put_line('중학생 : ' || age); 
+    WHEN 20 THEN
+    	dbms_output.put_line('대학생 : ' || age); 
+    END CASE;
+END;
+
+-- PL/SQL LOOP
+DECLARE 
+   x number := 0; 
+   age number(10) := 20;
+BEGIN   
+	
+  LOOP
+	  x := x + 1;
+  	-- LOOP를 빠져나갈 수 있는 조건을 넣어야 함 
+	  IF x=age THEN
+	  	dbms_output.put_line('값이 같음 ' || x); 
+	    -- exit를 통해서 반복을 빠져나갈 수 있다
+	    EXIT;
+	  ELSE
+	  	dbms_output.put_line('값이 다름 ' || x);
+	  CONTINUE;
+	  END IF; 
+	    dbms_output.put_line('마지막 라인');
+  END LOOP;
+  
+END;
+
+-- PL/SQL FOR LOOP
+DECLARE 
+   x number := 0; 
+   age number(10) := 20;
+BEGIN   
+  -- FOR LOOP는 루프 전 조건을 줄 수 있다
+  -- 아래 조건은 x의 값이 1부터 100까지 LOOP를 돈다 
+  FOR x IN 1..100
+  LOOP
+  	-- LOOP를 빠져나갈 수 있는 조건을 넣어야 함 
+	  IF x < age THEN
+	  	dbms_output.put_line('값이 다름 ' || x);  
+	  	-- CONTINUE 넣어서 마지막 조건을 타지 않는다
+	    CONTINUE;
+	  ELSE
+	  	dbms_output.put_line('값이 같음 ' || x);
+	  -- exit를 통해서 반복을 빠져나갈 수 있다
+	  EXIT;
+	  
+	  END IF; 
+	    dbms_output.put_line('마지막 라인');
+  END LOOP;
+  
+END;
+
+-- PL/SQL WHILE LOOP
+DECLARE 
+   x number := 0; 
+   age number(10) := 20;
+BEGIN   
+  -- 조건에 만족할때까지 LOOP를 돈다
+  WHILE x < age
+  LOOP
+	x:=x+1;
+  	dbms_output.put_line('WHILE : ' || x);
+  END LOOP;
+ 
+  -- loop를 한번 돌고 값 초기화
+  x := 0;
+  LOOP
+	x:=x+1;
+	EXIT WHEN x=age;
+  	dbms_output.put_line('EXIT WHEN : ' || x);
+  END LOOP;
+  
+END;
+
+-- 반복문 커서 FOR 루프
+BEGIN
+	-- FOR문에 조건을 쿼리로 줄 수 있다
+	-- 이때 조회한 값을 insert, update, delete를 하여 다양하게 활용 가능
+	-- 물론 쿼리를 제외한 다른 조건도 넣을 수 있음
+	FOR fc IN (SELECT * FROM SAMPLE)
+	  LOOP	
+		dbms_output.put_line(fc.name);
+	END LOOP;
+	
+END;
+
+-- GOTO
+BEGIN
+	FOR fc IN (SELECT * FROM SAMPLE)
+	  LOOP
+		  dbms_output.put_line(fc.name);
+		  -- name 컬럼이 위바페라면
+		  IF fc.name = '위바페' THEN
+		  	-- out_side 영역으로 이동한다
+			goto out_side;
+		  END IF;
+	END LOOP;
+		-- goto 문법은 꺽새로 표현
+		<<out_side>>
+		dbms_output.put_line('goto');
+END;
+
+-- NULL = no operation
+BEGIN
+	FOR fc IN (SELECT * FROM SAMPLE)
+	  LOOP
+		  dbms_output.put_line(fc.name);
+		  IF fc.name = '위바페' THEN
+			goto out_side;
+		  ELSE
+		  	-- else 구문 안 내용을 주석처리 후 실행하면 구문 오류가 걸린다
+		   	-- 이때 NULL을 선언해주면 구문 오류 없이 정상 실행
+		  	NULL;
+		  	-- dbms_output.put_line(fc.name);
+		  End If;
+	END LOOP;
+		<<out_side>>
+		dbms_output.put_line('goto');
+END;
