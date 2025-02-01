@@ -1,0 +1,100 @@
+CREATE OR REPLACE PACKAGE P_ORDERS
+AS
+-- 패키지 헤더
+-- 패키지에서 사용할 프로시저명 펑션명을 선언한다
+-- 패키지 헤더에 프로시져와 펑션 선언을 하지 않으면 외부에서 호출 불가
+-- 프로시져, 펑션을 제외한 일반 변수도 선언해서 외부에서 호출 가능
+
+-- 포인트 추가 FUNCTION  
+FUNCTION F_GET_POINT_ADD(
+	p_total_price IN NUMBER
+) RETURN NUMBER;
+
+-- 주문 생성 PROCEDURE 
+PROCEDURE SP_MAKE_ORDER( 
+	P_CST_ID IN VARCHAR2,
+	R_RTN_CODE OUT VARCHAR2,
+	R_RTN_MSG OUT VARCHAR2 
+);  
+
+-- Package header
+END P_ORDERS;
+
+CREATE OR REPLACE PACKAGE BODY P_ORDERS AS
+-- Package body
+FUNCTION F_GET_POINT_ADD(
+	p_total_price IN NUMBER
+) RETURN NUMBER IS
+
+v_point real_ord.point_add%type;
+BEGIN
+	v_point := round(p_total_price * 0.1);
+
+RETURN v_point;
+
+EXCEPTION WHEN OTHERS THEN 
+	RETURN 0;
+END F_GET_POINT_ADD;
+
+PROCEDURE SP_MAKE_ORDER(
+	P_CST_ID IN VARCHAR2,
+	R_RTN_CODE OUT VARCHAR2,
+	R_RTN_MSG OUT VARCHAR2
+) IS
+	v_mnu_id tmp_ord.mnu_id%type;
+	v_mnu_size tmp_ord.mnu_size%type;
+
+	-- 주문서 변수
+	r_real_ord real_ord%rowtype;
+
+	-- 옵션가격 변수
+	v_price_size menu.mnu_price%type;
+	v_price_ice menu.mnu_price%type;
+
+BEGIN
+	
+	-- 장바구니의 자료를 가져온다
+	-- 장바구니의 개수만큼 LOOP를 진행한다
+	-- NVL(P_CST_ID, CST_ID)) = 파라메터로 받은 고객 아이디가 존재하면 받은 파라메터로 조회
+	-- 받은 파라메터에 값이 없다면 TMP_ORD 테이블에 존재하는 모든 고객 아이디 조회
+	FOR fc IN (SELECT * FROM TMP_ORD WHERE CST_ID = NVL(P_CST_ID, CST_ID))
+	LOOP
+		dbms_output.put_line(fc.cst_id);
+		-- select into 구문은 조회된 row가 하나일 때 가능하다	
+		-- 메뉴 기본 금액(메뉴 중 옵션 미 포함 금액)
+		SELECT
+			MNU_PRICE INTO r_real_ord.price
+		FROM MENU
+		WHERE MNU_ID = fc.mnu_id;
+		
+		-- 사이즈 옵션 가격
+		v_price_size := f_get_opt_price(fc.mnu_id, fc.mnu_size);
+		-- 아이스 옵션 가격
+		v_price_ice := f_get_opt_price(fc.mnu_id, fc.mnu_ice);
+	
+		-- 주문 단가 + 사이즈 옵션 가격 + 아이스 옵션 가격
+		r_real_ord.price := r_real_ord.price + v_price_size + v_price_ice;
+		-- 총 가격 (주문 단가 * 수량)
+		r_real_ord.total_price := r_real_ord.price * fc.qty;
+	
+		-- 구매 시 포인트 적립 (10%)
+		r_real_ord.point_add := P_ORDERS.F_GET_POINT_ADD(r_real_ord.total_price);
+
+		-- 주문정보 생성
+		INSERT INTO REAL_ORD(ORD_SEQ, CST_ID, MNU_ID, MNU_SIZE, MNU_ICE, QTY, PRICE, TOTAL_PRICE, POINT_USE,
+							 POINT_ADD)
+		VALUES(1, fc.cst_id, fc.mnu_id, fc.mnu_size, fc.mnu_ice, fc.qty, r_real_ord.price, r_real_ord.total_price,
+			   fc.point_use, r_real_ord.point_add);
+			  
+		-- 개인정보에 결제한 금액의 10%를 포인트로 넣어준다
+		UPDATE CST_INFO 
+		SET POINT = POINT + r_real_ord.point_add
+		WHERE CST_ID = fc.cst_id;
+		
+	END LOOP;
+
+	R_RTN_CODE := '200';
+	R_RTN_MSG := 'OK';
+END SP_MAKE_ORDER;
+
+END P_ORDERS;
