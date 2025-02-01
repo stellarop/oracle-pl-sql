@@ -1,0 +1,29 @@
+CREATE OR REPLACE FUNCTION LYJ.F_GET_OPT_PRICE(
+	-- 메뉴 아이디
+	p_mnu_id IN varchar2,
+	-- 메뉴 옵션(사이즈, 아이스 유무)
+	p_mnu_opt IN varchar2
+) RETURN NUMBER IS
+
+v_menu_type menu.mnu_type%type;
+v_opt_price menu_opt.opt_price%type;
+BEGIN
+	-- 메뉴 타입 가져오기
+	SELECT 
+		 MNU_TYPE INTO v_menu_type 
+	FROM MENU 
+	WHERE MNU_ID = p_mnu_id; 
+	
+	-- 옵션가 가져오기
+	SELECT
+		OPT_PRICE INTO v_opt_price
+	FROM MENU_OPT
+	WHERE MNU_TYPE = v_menu_type
+	AND MNU_OPT = p_mnu_opt;
+RETURN v_opt_price;
+
+
+EXCEPTION WHEN OTHERS THEN 
+	-- ice 옵션이 존재하지 않거나 익셉션이 터지면 0 리턴
+	RETURN 0;
+END F_GET_OPT_PRICE;
