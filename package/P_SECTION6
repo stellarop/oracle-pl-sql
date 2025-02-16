@@ -1,0 +1,186 @@
+CREATE OR REPLACE PACKAGE LYJ.P_SECTION6
+AS
+
+	-- 레코드 선언
+	-- 패키지 내부 전역 레코드 
+ 	TYPE CatInfoRecTyp IS RECORD (
+ 		v_name cst_info.name%TYPE,
+		v_birth cst_info.birth%TYPE, 
+		v_mobile cst_info.mobile%TYPE,
+		v_favorite varchar2(100)
+ 	);
+ 
+	-- Package header
+	-- P_SECTION6 패키지는 SP_SECTION6_1 프로시저를 통해야 내부에 있는 펑션과 프로시저를 사용할 수 있다
+	-- 외부에서 사용하게 만드려면 패키지 헤더에 외부에서 접근 가능하게 할 펑션과 프로시저를 선언한다
+	PROCEDURE SP_SECTION6_1;
+	PROCEDURE SP_SECTION6_3;
+END P_SECTION6;
+
+CREATE OR REPLACE PACKAGE BODY LYJ.P_SECTION6
+AS
+-- Package body
+
+-- section 6-1
+FUNCTION PF_GET_NAME1( 
+  P_CST_ID IN CST_INFO.CST_ID%TYPE
+) RETURN VARCHAR2 
+AS 
+
+-- 일반변수
+ v_name cst_info.name%type;
+BEGIN  
+	select name into v_name 
+    from cst_info 
+    where cst_id=p_cst_id;
+  RETURN v_name;
+END PF_GET_NAME1;
+
+FUNCTION PF_GET_NAME2(
+  P_CST_INFO IN CST_INFO%ROWTYPE
+) RETURN CST_INFO%ROWTYPE 
+AS 
+  
+  -- rowtype 변수 
+ r_cst_info cst_info%rowtype;
+BEGIN
+	select *  into r_cst_info
+    from cst_info 
+    where cst_id=P_CST_INFO.cst_id;
+  RETURN r_cst_info;
+END PF_GET_NAME2;
+
+PROCEDURE PSP_GET_NAME1(
+	 p_cst_id IN cst_info.cst_id%TYPE,
+	 v_name OUT cst_info.name%TYPE
+)
+IS
+BEGIN
+	select name into v_name 
+    from cst_info 
+    where cst_id=p_cst_id;
+END PSP_GET_NAME1;
+
+ PROCEDURE PSP_GET_NAME2(
+	 p_cst_info IN cst_info%ROWTYPE,
+	 v_cst_info OUT cst_info%ROWTYPE 
+)
+IS
+BEGIN
+	select name into v_cst_info.name 
+    from cst_info 
+    where cst_id=p_cst_info.cst_id;
+END PSP_GET_NAME2; 
+
+PROCEDURE SP_SECTION6_1
+IS
+
+ -- 일반변수 
+ p_cst_id cst_info.cst_id%type;
+ v_name cst_info.name%type;
+ 
+ -- rowtype 변수 
+ p_cst_info cst_info%rowtype;
+ r_cst_info cst_info%rowtype;
+BEGIN
+	p_cst_id := 'C003';
+    p_cst_info.cst_id := 'C003';
+   
+    
+   	-- FUNCTION은 리턴값을 변수에 대입한다
+    -- 일반변수 이용 FUNCTION
+   	v_name := P_SECTION6.PF_GET_NAME1(p_cst_id);
+   	dbms_output.put_line('FUNCTION 일반 변수 : '||v_name); 
+    
+    -- rowType 이용 FUNCTION
+   	r_cst_info := P_SECTION6.PF_GET_NAME2(p_cst_info); 
+   	dbms_output.put_line('FUNCTION rowType : '||r_cst_info.name);
+   
+   
+   	dbms_output.put_line(chr(10)||chr(13)); 
+   
+   	p_cst_id := 'C001';
+ 	p_cst_info.cst_id := 'C001';
+    -- PROCEDURE는 리턴값을 받기위해 리턴받을 변수를 파라메터로 같이 넘겨준다
+    -- 일반변수 이용 PROCEDURE
+   	P_SECTION6.PSP_GET_NAME1(p_cst_id, v_name);
+   	dbms_output.put_line('PROCEDURE 일반 변수 : '||v_name); 
+    
+    -- rowType 이용 PROCEDURE
+    P_SECTION6.PSP_GET_NAME2(p_cst_info, r_cst_info);
+   	dbms_output.put_line('PROCEDURE rowType : '||r_cst_info.name);
+   
+END SP_SECTION6_1;
+
+-- Record
+FUNCTION PF_GET_RECORD( 
+  P_CST_ID IN CST_INFO.CST_ID%TYPE
+) RETURN CatInfoRecTyp
+AS 
+
+	-- 일반변수
+ 	v_name cst_info.name%type;
+	-- 레코드 타입 변수 선언
+ 	rec_ast_info CatInfoRecTyp;
+BEGIN  
+	SELECT name, birth, mobile, '커피' AS favorite
+	-- 레코드를 사용하면 조회값을 변수에 따로 받는게 아닌 레코드 타입 변수에 한꺼번에 받는게 가능하다
+	INTO rec_ast_info
+	FROM CST_INFO
+	WHERE CST_ID = p_cst_id;
+  RETURN rec_ast_info;
+END PF_GET_RECORD;
+
+PROCEDURE PSP_GET_RECORD(
+	p_cst_id IN cst_info.cst_id%TYPE,
+	-- 전역에 생성한 레코드 객체는 프로시저 파라메터로 받을수 있다
+	rec_ast_info OUT CatInfoRecTyp
+)
+IS
+BEGIN
+	SELECT name, birth, mobile, '커피' AS favorite
+	INTO rec_ast_info
+	FROM CST_INFO
+	WHERE CST_ID = p_cst_id;
+
+END PSP_GET_RECORD; 
+
+PROCEDURE SP_SECTION6_3
+IS
+ 	-- 일반변수 
+ 	p_cst_id cst_info.cst_id%type; 
+ 
+ 	-- 레코드 타입 변수 선언
+ 	cst_info_rec CatInfoRecTyp;
+
+	-- rowtype 변수 
+ 	p_cst_info cst_info%rowtype;
+  	r_cst_info cst_info%rowtype;
+BEGIN
+	p_cst_id := 'C003';
+	
+	cst_info_rec := P_SECTION6.PF_GET_RECORD(p_cst_id);
+	dbms_output.put_line('FUNCTION 호출');
+	dbms_output.put_line('v_name :' || cst_info_rec.v_name);
+    dbms_output.put_line('v_birth :' || cst_info_rec.v_birth);
+    dbms_output.put_line('v_mobile :' || cst_info_rec.v_mobile); 
+    dbms_output.put_line('v_favorite :' || cst_info_rec.v_favorite); 
+   
+   	dbms_output.put_line(chr(10)||chr(13));
+   
+   	p_cst_id := 'C001';
+ 	p_cst_info.cst_id := 'C001';
+  
+ 	-- 레코드 타입으로 파라메터를 한번에 받을 수 있다
+   	P_SECTION6.PSP_GET_RECORD(p_cst_id, cst_info_rec);
+   	dbms_output.put_line('PROCEDURE 호출');
+   	dbms_output.put_line('v_name :' || cst_info_rec.v_name);
+    dbms_output.put_line('v_birth :' || cst_info_rec.v_birth);
+    dbms_output.put_line('v_mobile :' || cst_info_rec.v_mobile); 
+    dbms_output.put_line('v_favorite :' || cst_info_rec.v_favorite); 
+    
+ 
+   
+END SP_SECTION6_3;
+
+END P_SECTION6;
