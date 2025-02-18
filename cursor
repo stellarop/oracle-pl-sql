@@ -1,0 +1,36 @@
+-- 커서 사용
+DECLARE
+   p_cst_id varchar2(20):=null;
+  
+   -- 커서 선언
+   CURSOR cur_cst_info
+
+ 	is select cst_id, name from cst_info where cst_id=Nvl(p_cst_id, cst_id);
+ 
+	v_cst_id cst_info.cst_id%TYPE;
+	v_name cst_info.name%TYPE;
+BEGIN
+	-- 커서 오픈
+    Open cur_cst_info;
+        LOOP
+	        -- 루프를 돌면서 결과값을 변수에 대입
+            FETCH cur_cst_info Into v_cst_id, v_name;
+           	-- cst_info 테이블에 row가 존재하지 않을때까지
+            Exit When cur_cst_info%NOTFOUND;
+                dbms_output.put_line(v_cst_id ||'-'|| v_name);
+        End Loop;
+        
+    Close cur_cst_info;
+    dbms_output.put_line(chr(10)||chr(13));
+End;
+
+-- 커서 미사용
+DECLARE
+    p_cst_id varchar2(20):=null;
+begin
+    FOR fc IN (select cst_id, name from cst_info where cst_id=Nvl(p_cst_id, cst_id))
+        Loop
+           dbms_output.put_line(fc.cst_id ||'-'|| fc.name);
+        End Loop;
+    dbms_output.put_line(chr(10)||chr(13));
+End;
