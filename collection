@@ -1,0 +1,137 @@
+-- Associative 컬렉션 (java hashMap과 유사)
+DECLARE
+  -- value
+  TYPE Capital IS TABLE OF VARCHAR2(50)
+  -- key
+  -- INDEX BY VARCHAR2(64);  
+  -- key number type
+  INDEX BY PLS_INTEGER;
+  
+ 
+  -- 컬렉션 선언
+  city_capital  Capital;
+  -- index 변수
+  v_index  VARCHAR2(64);                    
+  
+BEGIN
+  -- hashMap과 같은 key, value 구조
+--  city_capital('한국')  := '서울';
+--  city_capital('프랑스')  := '파리';
+--  city_capital('영국')  := '런던';
+	city_capital(1)  := '서울';
+  	city_capital(2)  := '파리';
+ 	city_capital(3)  := '런던';
+  
+  -- key를 파라메터로 넘겨주면 value를 리턴한다
+  --DBMS_Output.PUT_LINE(city_capital('한국'));
+  DBMS_Output.PUT_LINE(city_capital(1));
+
+  -- city_capital 컬렉션의 첫번째 요소를 가져온다
+  v_index := city_capital.FIRST; 
+  -- v_index가 null이 아닐때까지 루프를 돈다
+  WHILE v_index IS NOT NULL LOOP
+	-- 루프를 돌면서 key, value를 출력한다
+    DBMS_Output.PUT_LINE('Population of ' || v_index || ' is ' || city_capital(v_index));
+    -- 현재 v_index(key) 값을 넘겨주어 다음 key값을 v_index 변수에 대입한다
+    v_index := city_capital.NEXT(v_index);
+  END LOOP;
+END;
+
+-- Varrays 컬렉션 (java array와 유사)
+DECLARE
+    
+  -- Capital 타입의 길이가 10인 array 값은 varchar2
+  TYPE Capital IS VARRAY(10) OF VARCHAR2(50);
+  -- Capital에 동적으로 값 삽입
+  city_capital Capital := Capital('서울','파리','런던');
+ 
+BEGIN
+  -- city_capital 컬렉션 indet 1부터 루프를 돈다
+  FOR i IN 1..city_capital.count LOOP
+	  -- 루프를 돌면서 값 출력
+      DBMS_OUTPUT.PUT_LINE(city_capital(i));
+  END LOOP;
+
+END;
+
+-- Nested 컬렉션 (java ArrayList와 유사)
+DECLARE 
+  -- Capital 컬렉션 선언
+  TYPE Capital IS TABLE OF VARCHAR2(20);
+  -- 컬렉션 변수에 정적으로 값 삽입
+  city_capital Capital := Capital('서울','파리','런던');
+   
+Begin
+    -- city_capital first ~ city_capital last 만큼 루프를 돈다
+    FOR i IN city_capital.FIRST .. city_capital.LAST LOOP
+	  -- 루프를 돌면서 값 출력
+      DBMS_OUTPUT.PUT_LINE(city_capital(i));
+    END LOOP;
+ 
+    DBMS_OUTPUT.PUT_LINE('---');
+
+END;
+
+DECLARE
+	
+BEGIN
+	DBMS_OUTPUT.PUT_LINE(P_COMM.city_capital('한국'));	
+END;
+
+CREATE TABLE CST_INFO2 AS SELECT * FROM CST_INFO;
+
+SELECT * FROM CST_INFO2;
+DELETE FROM CST_INFO2;
+
+
+-- 컬렉션 타입을 객체로 지정
+DECLARE
+    -- 타입을 cst_info 테이블 전체 row로 지정한다
+    TYPE nl_cst_info IS TABLE OF cst_info%rowtype;
+    -- 초기화
+    l_cst_info nl_cst_info := nl_cst_info();
+BEGIN
+	-- BULK COLLECT은 루프를 돌지 않고 값을 한꺼번에 해당 객체에 삽입한다
+	SELECT	*
+	BULK COLLECT INTO l_cst_info
+	FROM cst_info;
+	-- cst_info 테이블 조회
+	/*
+    For fc In (SELECT *  FrOM cst_info)
+    LOOP
+	  -- 타입 추가
+      l_cst_info.EXTEND;
+      -- 루프를 돌면서 객체 마지막 row에 값을 삽입
+      l_cst_info(l_cst_info.LAST).cst_id := fc.cst_id;
+      l_cst_info(l_cst_info.LAST).name := fc.name;
+      l_cst_info(l_cst_info.LAST).birth := fc.birth;      
+      
+      dbms_output.put_line(fc.cst_id);
+    End Loop;
+    */
+    
+    DBMS_OUTPUT.put_line (chr(10)||chr(13));
+   
+    -- FORALL을 사용하여 루프를 돌지 않고 값을 한꺼번에 삽입 가능
+    -- FORALL은 하나의 DML만 처리 가능
+    FORALL indx IN l_cst_info.first .. l_cst_info.COUNT
+     insert into cst_info2(cst_id, name, birth, mobile, point,reg_day)
+     values (l_cst_info(indx).cst_id, l_cst_info(indx).name, l_cst_info(indx).birth,
+             l_cst_info(indx).mobile, l_cst_info(indx).point, l_cst_info(indx).reg_day); 
+    
+    -- l_cst_info 객체의 0번째부터 ~ 마지막 길이까지 루프를 돈다
+    /*
+    FORALL indx IN l_cst_info.first .. l_cst_info.COUNT
+    LOOP
+	  insert into cst_info2(cst_id, name, birth, mobile, point,reg_day)
+     values (l_cst_info(indx).cst_id, l_cst_info(indx).name, l_cst_info(indx).birth,
+             l_cst_info(indx).mobile, l_cst_info(indx).point, l_cst_info(indx).reg_day);    
+	  -- l_cst_info index에 해당하는 값을 출력
+	  -- first부터 루프가 돌았으니 첫 인덱스는 0
+      DBMS_OUTPUT.put_line (l_cst_info (indx).cst_id);      
+      DBMS_OUTPUT.put_line (l_cst_info (indx).name);
+      DBMS_OUTPUT.put_line (chr(10)||chr(13));            
+      
+    END LOOP;
+    */
+END;
