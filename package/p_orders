@@ -158,8 +158,10 @@ BEGIN
 		
 	END LOOP;
 
-	R_RTN_CODE := '200';
-	R_RTN_MSG := 'OK';
+	-- 쿼리 실행코드(정상 0, 사용자 정의 오류 1)
+	R_RTN_CODE := sqlcode;
+	-- 쿼리 실행코드에 따른 메시지
+	R_RTN_MSG := sqlerrm;
 END SP_MAKE_ORDER;
 
 END P_ORDERS;
