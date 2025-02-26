@@ -1,0 +1,115 @@
+-- dynamic sql
+DECLARE
+	v_qry varchar2(1000);
+	p_cst_id cst_info.cst_id%TYPE := 'C001';
+	v_col varchar2(100);
+	v_val varchar2(100);
+BEGIN
+	-- 조회에 붙힐 변수
+	v_col := 'name';
+	-- 동적쿼리 변수
+	v_qry := 'select '|| v_col ||' from cst_info where cst_id= :cst';
+	
+	-- 조건절에 붙힐 변수는 USING에 선언해야 한다
+	EXECUTE IMMEDIATE v_qry INTO v_val USING p_cst_id;
+	DBMS_OUTPUT.put_line('v_val : ' || v_val);
+
+	-- cst_id 변경
+	p_cst_id := 'C002';
+
+	-- 동적쿼리 재사용
+	EXECUTE IMMEDIATE v_qry INTO v_val USING p_cst_id;
+	DBMS_OUTPUT.put_line('v_val : ' || v_val);
+END;
+
+
+-- dynamic sql FUNCTION 사용
+DECLARE
+	v_val varchar(50);
+
+	FUNCTION f_get_val(p_key IN varchar2, p_col IN varchar2)	
+	RETURN varchar2
+	AS
+		v_qry varchar2(1000);
+		r_val varchar2(50);
+	BEGIN
+		
+		v_qry := 'select '|| p_col ||' from menu where mnu_id= :key';
+		EXECUTE IMMEDIATE v_qry INTO r_val USING p_key;
+	
+	RETURN r_val;
+	END f_get_val;
+	
+	
+
+BEGIN
+	v_val := f_get_val( 'M001', 'mnu_nm');
+
+	DBMS_OUTPUT.put_line('v_val : ' || v_val);
+END;
+
+-- dynamic sql FUNCTION 사용
+DECLARE
+	
+	PROCEDURE p_get_val(p_key IN varchar2, p_col IN varchar2, p_col_val IN varchar2)
+	AS
+		v_qry varchar2(1000);
+		r_val varchar2(50);
+	BEGIN
+		
+		v_qry := 'UPDATE MENU SET '|| p_col ||' = :col WHERE MNU_ID = :key';
+		EXECUTE IMMEDIATE v_qry USING p_col_val, p_key;
+	
+	END p_get_val;
+	
+
+BEGIN
+	p_get_val('M005', 'MNU_NM', '테스트');
+END;
+
+SELECT * FROM menu;
+
+UPDATE menu SET MNU_NM = '흑맥주' WHERE MNU_ID = 'M005';
+
+
+
+
+-- dynamic sql ddl
+CREATE TABLE REAL_ORD2 AS SELECT * FROM REAL_ORD;
+
+SELECT * FROM REAL_ORD2;
+DELETE FROM REAL_ORD2;
+
+INSERT INTO REAL_ORD2 SELECT * FROM REAL_ORD;
+
+CREATE INDEX idx_real_ord2_01 ON REAL_ORD2(ord_no, ord_seq);
+
+CREATE INDEX idx_real_ord2_02 ON REAL_ORD2(cst_id);
+
+SELECT * FROM ALL_IND_COLUMNS WHERE TABLE_NAME = 'REAL_ORD2';
+
+-- dynamic sql을 사용하여 데이터 이관
+DECLARE
+	v_qry varchar2(1000);
+BEGIN
+	-- 테이블 데이터 삭제(Truncate는 테이블 구조도 같이 삭제)
+	v_qry := 'truncate table real_ord2 drop storage';
+	EXECUTE IMMEDIATE v_qry;
+	
+	-- 인덱스 삭제 
+	v_qry := 'drop index idx_real_ord2_01';
+	EXECUTE IMMEDIATE v_qry;
+	v_qry := 'drop index idx_real_ord2_02';
+	EXECUTE IMMEDIATE v_qry;
+
+	-- 삭제된 테이블에 데이터 삽입
+	v_qry := 'insert into real_ord2 select * from real_ord';
+	EXECUTE IMMEDIATE v_qry;
+
+	-- 인덱스 재생성 
+	v_qry := 'create index idx_real_ord2_01 on real_ord2(ord_no, ord_seq)';
+	EXECUTE IMMEDIATE v_qry;
+	v_qry := 'create index idx_real_ord2_02 on real_ord2(cst_id)';
+	EXECUTE IMMEDIATE v_qry;
+
+END;
