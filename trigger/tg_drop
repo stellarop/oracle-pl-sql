@@ -1,0 +1,16 @@
+CREATE OR REPLACE TRIGGER TG_DROP
+BEFORE 
+-- 스키마에 대한 DROP이 일어난다면
+DROP ON LYJ.SCHEMA 
+BEGIN
+	 -- 후처리
+	 -- DROP에 대한 Object name
+	 dbms_output.put_line('ora_dict_obj_name : '|| ora_dict_obj_name); 
+	 -- DROP에 대한 Object type
+  	 dbms_output.put_line('ora_dict_obj_type : '|| ora_dict_obj_type);
+  	
+  	 -- Object type을 활용해서 특정 타입만 drop
+  	 IF ora_dict_obj_type IN ('TABLE') THEN
+	 Raise_Application_Error(-20001, 'Table drops are blocked by triggers');
+	 END IF;
+END;
