@@ -1,0 +1,8 @@
+CREATE OR REPLACE TRIGGER LYJ.TG_TRUNCATE 
+BEFORE 
+-- 스키마에 대한 TRUNCATE이 일어난다면
+TRUNCATE ON LYJ.SCHEMA 
+BEGIN
+	 -- 후처리
+	 Raise_Application_Error(-20001, 'Table Truncates are blocked by triggers'); 
+END;
