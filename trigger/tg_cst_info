@@ -1,0 +1,33 @@
+CREATE OR REPLACE TRIGGER LYJ.TG_CST_INFO
+   -- 트리거의 발생 시점 BEFORE or AFTER  
+   BEFORE 
+   -- 트리거를 발생 시킬 테이블 부착 후 후처리 작업 선택(INSERT/UPDATE/DELETE)
+   -- OF로 특정 컬럼이 변경 되었을때 트리거 실행 가능하다
+   DELETE OR INSERT OR UPDATE /*OF BIRTH, REG_DAY*/ ON CST_INFO  
+   -- NEW , OLD 에 대한 alias 사용 가능
+   -- 트리거가 실행되면 각 row 별로 실행
+   FOR EACH ROW
+   -- 트리거의 조건을 생성
+   -- WHEN (new.cst_id = 'C001')   
+   DECLARE  
+     
+   BEGIN 
+    -- NEW : 새로 추가되거나 변경된 후의 값에 트리거가 적용된다.(INSERT : 입력할 값, UPDATE : 수정할 값)
+    -- OLD : 변경 전의 값에 트리거가 적용된다. (UPDATE : 수정 전 값, DELETE : 삭제할 값)
+     IF INSERTING THEN 
+    	DBMS_OUTPUT.put_line('TG_DEPARTMENTS_BEFORE - INSERT');
+     ELSIF UPDATING THEN
+    	DBMS_OUTPUT.put_line('TG_DEPARTMENTS_BEFORE - UPDATE');    
+     ELSIF DELETING THEN
+    	Raise_Application_Error(-20001, 'Dont delete this table');    
+     END IF;
+    
+    -- insert or update중 새로 들어오는 point 컬럼이 10만 포인트가 넘으면 분기처리
+    IF(INSERTING OR UPDATING) AND :NEW.point > 100000 AND :NEW.cst_id = 'C001' THEN
+    	Raise_Application_Error(-20001, 'Point 100000 Over is Error');   
+    END IF;
+   
+   INSERT INTO cst_info_log (cst_id, new_point, old_point, reg_day)
+   VALUES (:NEW.cst_id, :NEW.point, :OLD.point, sysdate); 
+     
+ END;
