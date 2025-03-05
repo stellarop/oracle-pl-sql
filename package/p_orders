@@ -126,7 +126,7 @@ BEGIN
 		WHERE MNU_ID = fc.mnu_id;
 
 		-- 미성년자 체크 
-		v_out_msg := f_age_chk(fc.cst_id, fc.mnu_id);
+		v_out_msg := P_ORDERS.F_AGE_CHK(fc.cst_id, fc.mnu_id);
 	
 		IF v_out_msg LIKE 'error' THEN
 			RAISE_APPLICATION_ERROR(-20000, '미성년자는 주류를 구매할 수 없습니다');
