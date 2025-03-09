@@ -1,12 +1,10 @@
 CREATE OR REPLACE FUNCTION LYJ.F_AGE_CHK(
 	v_cst_id IN VARCHAR2,
-	v_menu_id IN VARCHAR2
+	v_mnu_id IN VARCHAR2
 ) RETURN VARCHAR2 IS
 
 -- 생년월일 변수
 v_cst_birth cst_info.birth%TYPE;
--- 메뉴 타입
-v_mnu_type menu.mnu_type%TYPE;
 
 -- 현재년도
 v_sys_year NUMBER;
@@ -30,7 +28,7 @@ BEGIN
 	dbms_output.put_line('주문자 나이 : '||v_age);
 
 	-- 나이가 19 미만 and 주문한 메뉴 타입이 주류타입 이라면
-	IF	v_age < 19 AND v_menu_id IN('M004', 'M005') THEN
+	IF	v_age < 19 AND v_mnu_id IN('M004', 'M005') THEN
 		v_out_msg := 'error';
 	ELSE
 		v_out_msg := 'ok';  
