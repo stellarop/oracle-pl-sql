@@ -1,0 +1,50 @@
+-- 스케줄러
+
+-- 테스트 테이블 생성
+create table job_log (
+  job_action varchar2(100),
+  job_code number(10),
+  job_errm varchar2(50) DEFAULT NULL NOT NULL
+  reg_day date default sysdate
+);
+
+ALTER TABLE job_log ADD JOB_ERRM VARCHAR2(50) DEFAULT NULL NOT NULL;
+SELECT * FROM job_log;
+
+ALTER TABLE job_log MODIFY reg_day VISIBLE;
+
+-- JOB 생성
+BEGIN
+    DBMS_SCHEDULER.CREATE_JOB(
+    JOB_NAME => 'JOB_NM', -- JOB 이름
+    JOB_TYPE => 'STORED_PROCEDURE',  --JOB TYPE SP OR PLSQL
+    JOB_ACTION => 'SP_JOB_LOG', -- JOB 작업 적용할 SP OR PLSQL
+    REPEAT_INTERVAL => 'FREQ=MINUTELY; INTERVAL =1', -- 배치 주기 (1분에 1번)
+    COMMENTS => '배치 테스트'); -- JOB 메모
+END;
+
+-- 등록된 JOB 조회
+SELECT * FROM USER_SCHEDULER_JOBS;
+-- 등록된 SCHEDULER 조회
+SELECT * FROM USER_SCHEDULER_PROGRAMS;
+
+-- 배치 실행 (생성한 JOB_NAME으로 실행)
+BEGIN
+    DBMS_SCHEDULER.ENABLE('JOB_NM');
+END;
+
+-- JOB 로그
+SELECT * FROM USER_SCHEDULER_JOB_LOG;
+
+
+-- ORACLE 버전 확인
+select * from v$version;
+
+-- JOB 삭제
+-- JOB_NAME : JOB 이름
+-- FORCE : 실행중인 JOB 삭제 여부
+BEGIN
+   DBMS_SCHEDULER.DROP_JOB(
+      JOB_NAME => 'JOB_NM',
+      FORCE => TRUE);
+END;
