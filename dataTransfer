@@ -1,0 +1,160 @@
+-- 데이터 이관
+
+-- 1번째 방법
+-- select를 100만번 성능이 좋지않음
+DECLARE
+	r_cst_info cst_info%rowtype;
+	r_menu menu%rowtype;
+	v_num NUMBER(10);
+BEGIN
+	-- 100만번 루프
+	FOR idx IN 1 .. 1000000
+	LOOP
+		-- 랜덤 고객정보
+		SELECT * INTO r_cst_info
+		FROM(SELECT * 
+			 FROM cst_info
+			 ORDER BY DBMS_RANDOM.RANDOM)
+		WHERE ROWNUM = 1;
+		
+		-- 랜덤 메뉴정보
+		SELECT * INTO r_menu
+    	FROM(SELECT * 
+        	 FROM menu
+        	 ORDER BY DBMS_RANDOM.RANDOM) 
+    	WHERE ROWNUM = 1;
+   		
+        -- 랜덤 수량 가져오기(1~10 ROUND 함수로 소수점 처리)
+    	v_num := ROUND(DBMS_RANDOM.VALUE(1, 10));
+		INSERT INTO real_ord (ord_seq, cst_id, mnu_id, mnu_size, mnu_ice, qty, price, total_price, point_use, point_add)
+        VALUES ( 1, r_cst_info.cst_id, r_menu.mnu_id, 'N', 'N', v_num , r_menu.mnu_price, v_num * r_menu.mnu_price , 0, 0);  
+	END LOOP;
+	
+END;
+
+-- 2번째 방법
+-- 미리 조회한 값을 컬렉션에 넣고 랜덤으로 고객 정보를 삽입한다
+DECLARE
+  -- 고객정보 Nested Table - Collection
+  TYPE NT_cst_info IS table OF cst_info%rowtype;
+       r_cst_info NT_cst_info := NT_cst_info();
+       
+  -- 메뉴정보 Nested Table - Collection     
+  TYPE NT_menu IS table OF menu%rowtype;
+       r_menu NT_menu := NT_menu();
+ 
+  -- 랜덤숫자       
+  cst_num number(10);     
+  menu_num number(10);
+BEGIN
+  
+  -- 고객정보 입력 
+  SELECT * 
+  BULK COLLECT INTO r_cst_info
+  FROM cst_info ORDER BY cst_id;
+  
+  -- 메뉴정보 입력 
+  SELECT * 
+  BULK COLLECT INTO r_menu
+  FROM menu ORDER BY mnu_id;
+  
+  -- 주문서 생성  
+  FOR indx IN 1 .. 1000000
+  Loop
+       -- 랜덤 함수 실행
+	   -- 컬렉션 객체에서 랜덤한 값을 가져와야 하기 때문에 랜덤 함수를 생성한다
+       cst_num := ROUND(DBMS_RANDOM.VALUE(1, 5));
+       menu_num := ROUND(DBMS_RANDOM.VALUE(1, 5));
+       
+        --   주문서를생성한다.
+        INSERT INTO real_ord( ord_seq, cst_id, mnu_id, mnu_size, mnu_ice, 
+                     qty, price, total_price, point_use, point_add)
+        VALUES( 1, r_cst_info(cst_num).cst_id, r_menu(menu_num).mnu_id, 'N', 'N', 
+                     cst_num, r_menu(menu_num).mnu_price, cst_num *r_menu(menu_num).mnu_price , 0, 0
+       );  
+  END Loop;
+END;
+
+
+SELECT * FROM real_ord ORDER BY ORD_NO;
+DELETE FROM real_ord;
+
+
+SELECT *
+  FROM all_sequences
+ WHERE sequence_name = 'SQ_REAL_ORD';
+
+-- 시퀀스 다음 값
+select SQ_REAL_ORD.NEXTVAL from dual;
+
+-- 시퀀스 초기화
+alter sequence SQ_REAL_ORD RESTART START WITH 1;
+DROP SEQUENCE sq_real_ord;
+
+DELETE FROM real_ord;
+
+CREATE SEQUENCE sq_real_ord
+       INCREMENT BY 1
+       START WITH 1000000
+       MINVALUE 1
+       MAXVALUE 9999999
+       NOCYCLE
+       CACHE 20
+       NOORDER;
+      
+      
+-- 분석 데이터 테이블 생성
+create table DA_ORDER(
+  ord_no number(10),
+  ord_seq number(5),
+  cst_id varchar2(20),
+  name varchar2(20),
+  mobile varchar2(20),
+  mnu_id varchar2(20),
+  mnu_type varchar2(20),
+  mnu_nm   varchar2(20),
+  mnu_price number(10),
+  qty number(10),
+  price number(10),
+  total_price number(10),
+  point_use number(10),
+  minor_yn varchar2(10), -- 미성년자여부 
+  minor_alcohol_yn varchar2(10), -- 미성년자에게 술판매여부 
+  reg_day date
+);
+
+SELECT * FROM DA_ORDER;
+
+DELETE FROM DA_ORDER;
+
+-- 주문서 분석 데이터 입력 
+declare
+ v_minor_yn da_order.minor_yn%type;
+ v_MINOR_ALCOHOL_YN da_order.MINOR_ALCOHOL_YN%type;
+begin
+
+  For fc in (select a.ord_no, a.ord_seq, a.cst_id,
+         b.name, b.birth, b.mobile, a.mnu_id,
+         c.mnu_type, c.mnu_nm, c.mnu_price, 
+         a.qty, a.price, a.total_price, a.point_use,
+         a.reg_day
+        from real_ord a, cst_info b, menu c
+        where a.cst_id=b.cst_id and a.mnu_id=c.mnu_id)  
+   Loop
+        -- ok or no
+        v_minor_yn :=F_CHK_19AGE(fc.birth);
+        
+        -- 미성년자이거나 메뉴 아이디 중 주류가 들어갔을시 분기를 탐
+        If v_minor_yn='NO' and fc.mnu_id in('M004','M005') then
+           v_MINOR_ALCOHOL_YN :='Y';
+        Else
+           v_MINOR_ALCOHOL_YN :='N';
+        End If;
+      
+       insert into da_order(ORD_NO, ORD_SEQ, CST_ID, NAME, MOBILE, MNU_ID, MNU_TYPE, MNU_NM, 
+                        MNU_PRICE, QTY, PRICE, TOTAL_PRICE, POINT_USE, MINOR_YN, MINOR_ALCOHOL_YN, REG_DAY)
+       values(fc.ORD_NO, fc.ORD_SEQ, fc.CST_ID, fc.NAME, fc.MOBILE, fc.MNU_ID, fc.MNU_TYPE, fc.MNU_NM, 
+              fc.MNU_PRICE, fc.QTY, fc.PRICE, fc.TOTAL_PRICE, fc.POINT_USE, v_minor_yn, v_MINOR_ALCOHOL_YN, fc.REG_DAY);
+   End Loop;
+  
+END;
