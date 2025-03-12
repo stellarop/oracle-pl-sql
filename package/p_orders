@@ -13,7 +13,7 @@ FUNCTION F_GET_POINT_ADD(
 -- 미성년자 나이 체크 FUNCTION 
 FUNCTION F_AGE_CHK(
 	v_cst_id IN VARCHAR2,
-	v_menu_id IN VARCHAR2
+	v_mnu_id IN VARCHAR2
 ) RETURN VARCHAR2; 
 
 -- 주문 생성 PROCEDURE 
@@ -42,15 +42,13 @@ EXCEPTION WHEN OTHERS THEN
 	RETURN 0;
 END F_GET_POINT_ADD;
 
-FUNCTION F_AGE_CHK(
+FUNCTION LYJ.F_AGE_CHK(
 	v_cst_id IN VARCHAR2,
-	v_menu_id IN VARCHAR2
+	v_mnu_id IN VARCHAR2
 ) RETURN VARCHAR2 IS
 
 -- 생년월일 변수
 v_cst_birth cst_info.birth%TYPE;
--- 메뉴 타입
-v_mnu_type menu.mnu_type%TYPE;
 
 -- 현재년도
 v_sys_year NUMBER;
@@ -58,13 +56,6 @@ v_sys_year NUMBER;
 v_age NUMBER;
 v_out_msg varchar2(40);
 BEGIN
-	
-	-- 주문한 메뉴 타입명 조회
-	SELECT
-		MNU_TYPE INTO v_mnu_type
-	FROM MENU
-	WHERE MNU_ID = v_menu_id;
-
 	-- 주문자의 생년월일 조회
 	SELECT
 		BIRTH INTO v_cst_birth
@@ -79,15 +70,12 @@ BEGIN
 	-- 나이 :=  현재년도 - 주문자 생년월일
 	v_age := v_sys_year - v_cst_birth;
 	dbms_output.put_line('주문자 나이 : '||v_age);
-	-- 주문타입이 주류일 시
-	IF v_mnu_type like '%맥주%'
-	THEN 
-		-- 나이가 19 미만이라면
-		IF	v_age < 19 THEN
-			v_out_msg := 'error';
-		ELSE
-			v_out_msg := 'ok';
-		END IF;  
+
+	-- 나이가 19 미만 and 주문한 메뉴 타입이 주류타입 이라면
+	IF v_age < 19 AND v_mnu_id IN('M004', 'M005') THEN
+		v_out_msg := 'error';
+	ELSE
+		v_out_msg := 'ok';  
 	END IF;
 
 
